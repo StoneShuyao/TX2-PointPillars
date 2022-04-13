@@ -32,6 +32,7 @@ import os, sys
 from exporter_paramters import export_paramters as export_paramters
 from simplifier_onnx import simplify_onnx as simplify_onnx
 
+
 class DemoDataset(DatasetTemplate):
     def __init__(self, dataset_cfg, class_names, training=True, root_path=None, logger=None, ext='.bin'):
         """
@@ -79,6 +80,7 @@ def parse_config():
     parser.add_argument('--data_path', type=str, default='demo_data',
                         help='specify the point cloud data file or directory')
     parser.add_argument('--ckpt', type=str, default=None, help='specify the pretrained model')
+    parser.add_argument('--onnx', type=str, default=None, help='specify the pretrained model')
     parser.add_argument('--ext', type=str, default='.bin', help='specify the extension of your point cloud data file')
 
     args = parser.parse_args()
@@ -126,7 +128,7 @@ def main():
 
       torch.onnx.export(model,                   # model being run
           (dummy_voxel_features, dummy_voxel_num_points, dummy_coords), # model input (or a tuple for multiple inputs)
-          "./pointpillar.onnx",    # where to save the model (can be a file or file-like object)
+          f"./{args.onnx}",    # where to save the model (can be a file or file-like object)
           export_params=True,        # store the trained parameter weights inside the model file
           opset_version=11,          # the ONNX version to export the model to
           do_constant_folding=True,  # whether to execute constant folding for optimization
@@ -134,17 +136,18 @@ def main():
           input_names = ['input', 'voxel_num_points', 'coords'],   # the model's input names
           output_names = ['cls_preds', 'box_preds', 'dir_cls_preds'], # the model's output names
           )
-      onnx_model = onnx.load("./pointpillar.onnx")  # load onnx model
+      onnx_model = onnx.load(f"./{args.onnx}")  # load onnx model
       model_simp, check = simplify(onnx_model)
       assert check, "Simplified ONNX model could not be validated"
 
 
       model_simp = simplify_onnx(model_simp)
-      onnx.save(model_simp, "pointpillar.onnx")
+      onnx.save(model_simp, f"./{args.onnx}")
       print("export pointpillar.onnx.")
       print('finished exporting onnx')
 
     logger.info('Demo done.')
+
 
 if __name__ == '__main__':
     main()
